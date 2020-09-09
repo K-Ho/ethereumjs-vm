@@ -25,13 +25,11 @@ module.exports = async function runBlockchainTest(options, testData, t) {
   if (testData.sealEngine && testData.sealEngine === 'Ethash') {
     validate = true
   }
-
-  const common = (options.forkConfigTestSuite == "HomesteadToDaoAt5") ? getDAOCommon(5) : new Common('mainnet', options.forkConfigVM)
-  
   let eips = []
   if (options.forkConfigVM == 'berlin') {
     eips = ['EIP2537'] // currently, the BLS tests run on the Berlin network, but our VM does not activate EIP2537 if you run the Berlin HF
   }
+  const { common } = options
 
   const blockchain = new Blockchain({
     db: blockchainDB,
@@ -95,6 +93,7 @@ module.exports = async function runBlockchainTest(options, testData, t) {
   let lastBlock = false
   for (const raw of testData.blocks) {
     currentBlock++
+    console.log(currentBlock)
     lastBlock = (currentBlock == numBlocks)
     const paramFork = `expectException${options.forkConfigTestSuite}`
     // Two naming conventions in ethereum/tests to indicate "exception occurs on all HFs" semantics
@@ -104,6 +103,15 @@ module.exports = async function runBlockchainTest(options, testData, t) {
     const expectException = raw[paramFork] ? raw[paramFork] : raw[paramAll1] || raw[paramAll2] || raw.blockHeader == undefined
 
     try {
+      // check if we should update common.
+      if (common.isNextHardforkBlock(currentBlock)) {
+        const activeHardforks = common.activeHardforks(currentBlock)
+        const hardforkName = activeHardforks[activeHardforks.length - 1].name
+        common.setHardfork(hardforkName)
+        // create a new VM (need access to new opcodes)
+        vm._updateOpcodes()
+      }
+
       const block = new Block(Buffer.from(raw.rlp.slice(2), 'hex'), {
         common
       }) 
@@ -159,6 +167,8 @@ module.exports = async function runBlockchainTest(options, testData, t) {
         t.fail("expected exception but test did not throw an exception")
       }
     } catch (error) {
+      // caught an error, reduce block number
+      currentBlock--
       await handleError(error, expectException, cacheDB)
     }
   }
