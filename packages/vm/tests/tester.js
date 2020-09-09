@@ -28,7 +28,7 @@ const Common = require('@ethereumjs/common').default
  * --debug: enable BlockchainTests debugger (compares post state against the expected post state)
  */
 
-function runTests() {
+async function runTests() {
   let name
   if (argv.state) {
     name = 'GeneralStateTests'
@@ -121,33 +121,37 @@ function runTests() {
       })
     })
   } else {
-    tape(name, t => {
+    tape(name, async t => {
       const runner = require(`./${name}Runner.js`)
       // Tests for HFs before Istanbul have been moved under `LegacyTests/Constantinople`:
       // https://github.com/ethereum/tests/releases/tag/v7.0.0-beta.1
 
-      const common = new Common('mainnet', FORK_CONFIG_VM)
-      if (!common.gteHardfork('istanbul') && FORK_CONFIG_TEST_SUITE != "HomesteadToDaoAt5") {
-        name = 'LegacyTests/Constantinople/'.concat(name)
+      const dirs = config.getTestDirs(FORK_CONFIG_VM, name)
+      for (let dir of dirs) {
+        await new Promise((resolve, reject) => {
+          testLoader.getTestsFromArgs(
+            dir,
+            async (fileName, testName, test) => {
+              let runSkipped = testGetterArgs.runSkipped
+              let inRunSkipped = runSkipped.includes(fileName)
+              if (runSkipped.length === 0 || inRunSkipped) {
+                t.comment(`file: ${fileName} test: ${testName}`)
+                await runner(runnerArgs, test, t)
+              }
+            },
+            testGetterArgs,
+          )
+          .then(() => {
+            resolve()
+          })
+          .catch((error) => {
+            t.fail(error)
+            reject()
+          })
+        })
       }
-      testLoader.getTestsFromArgs(
-        name,
-        async (fileName, testName, test) => {
-          let runSkipped = testGetterArgs.runSkipped
-          let inRunSkipped = runSkipped.includes(fileName)
-          if (runSkipped.length === 0 || inRunSkipped) {
-            t.comment(`file: ${fileName} test: ${testName}`)
-            await runner(runnerArgs, test, t)
-          }
-        },
-        testGetterArgs,
-      )
-      .then(() => {
-        t.end()
-      })
-      .catch((error) => {
-        t.comment(error)
-      })
+      t.end()
+
     })
   }
 }

@@ -201,6 +201,41 @@ const transitionNetworks = {
     startFork: 'homestead'
   }
 }
+
+const testLegacy = {
+  chainstart: true, 
+  homestead: true, 
+  tangerineWhistle: true,
+  spuriousDragon: true,
+  byzantium: true, 
+  constantinople: true,
+  petersburg: true,
+  istanbul: false,
+  muirGlacier: false,
+  berlin: false,
+  ByzantiumToConstantinopleFixAt5: false,
+  EIP158ToByzantiumAt5: false,
+  FrontierToHomesteadAt5: false,
+  HomesteadToDaoAt5: false, 
+  HomesteadToEIP150At5: false 
+} 
+/**
+ * Returns an array of dirs to run tests on
+ * @param {string} network (fork identifier)
+ * @param {string} Test type (BlockchainTests/StateTests)
+ */
+function getTestDirs(network, testType) {
+  let testDirs = [testType]
+  for (let key in testLegacy) {
+    if (key.toLowerCase() == network.toLowerCase() && testLegacy[key]) {
+      // Tests for HFs before Istanbul have been moved under `LegacyTests/Constantinople`:
+      // https://github.com/ethereum/tests/releases/tag/v7.0.0-beta.1
+      testDirs.push("LegacyTests/Constantinople/" + testType)
+      break
+    }
+  }
+  return testDirs
+}
   
 /**
  * Returns a Common for the given network (a test parameter)
@@ -310,5 +345,6 @@ module.exports = {
   SKIP_SLOW: SKIP_SLOW,
   getRequiredForkConfigAlias: getRequiredForkConfigAlias,
   getSkipTests: getSkipTests,
-  getCommon: getCommon
+  getCommon: getCommon,
+  getTestDirs: getTestDirs
 }

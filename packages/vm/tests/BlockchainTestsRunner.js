@@ -93,7 +93,6 @@ module.exports = async function runBlockchainTest(options, testData, t) {
   let lastBlock = false
   for (const raw of testData.blocks) {
     currentBlock++
-    console.log(currentBlock)
     lastBlock = (currentBlock == numBlocks)
     const paramFork = `expectException${options.forkConfigTestSuite}`
     // Two naming conventions in ethereum/tests to indicate "exception occurs on all HFs" semantics
@@ -165,6 +164,7 @@ module.exports = async function runBlockchainTest(options, testData, t) {
 
       if (expectException) {
         t.fail("expected exception but test did not throw an exception")
+        return
       }
     } catch (error) {
       // caught an error, reduce block number
