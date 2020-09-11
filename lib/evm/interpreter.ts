@@ -123,7 +123,7 @@ export default class Interpreter {
         break
       }
     }
-    
+
     for (const [depth, { callLogger, stepLogger }] of this._executionLoggers.entries()) {
       callLogger.close()
     }
@@ -263,12 +263,12 @@ export default class Interpreter {
     // if (!this._eei._env.isOvmCall) {
     //   return
     // }
-  
+
     const opName = info.opcode.name
-  
+
     const curAddress = info['address'].toString('hex')
     const curDepth = info['depth']
-  
+
     let scope = curAddress.slice(0, 8) + '...:d' + info['depth']
     if (!this._executionLoggers.has(curDepth)) {
       let addrName = curAddress
@@ -297,7 +297,7 @@ export default class Interpreter {
       callLogger.open()
       this._executionLoggers.set(curDepth, { callLogger, stepLogger, memLogger })
     }
-  
+
     let callLogger
     let stepLogger
     let memLogger
@@ -310,11 +310,11 @@ export default class Interpreter {
     if (callLogger === undefined || stepLogger === undefined || memLogger === undefined) {
       return
     }
-  
+
     const curMemory = info['memory']
-  
+
     let stack
-  
+
     if (['RETURN', 'REVERT'].includes(opName)) {
       stack = new Array(...info['stack']).reverse()
       const offset = stack[0]
@@ -327,7 +327,7 @@ export default class Interpreter {
       this._executionLoggers.delete(curDepth)
       return
     }
-  
+
     if (opName == 'CALL') {
       stack = new Array(...info['stack']).reverse()
       const target = stack[1].toBuffer()
@@ -355,25 +355,25 @@ export default class Interpreter {
       // }
       return
     }
-  
+
     const printThisMem: boolean =
       ['CALL', 'CREATE', 'CREATE2', 'STATICCALL', 'DELEGATECALL'].includes(opName) || printNextMem
     printNextMem = false
-  
+
     if (['MSTORE', 'CALLDATACOPY', 'RETUNDATACOPY', 'CODECOPY'].includes(opName)) {
       printNextMem = true
     }
-  
+
     if (stack === undefined) {
       stack = new Array(...info['stack']).reverse()
     }
-  
+
     stepLogger.log(
       `op:${padToLengthIfPossible(opName, 9)}stack:[  ${stack.map(stackEl => {
         return '0x' + stackEl.toString('hex')
       })}], pc:0x${info['pc'].toString(6)}`,
     )
-  
+
     if (printThisMem) {
       memLogger.log(`[${'0x' + Buffer.from(curMemory).toString('hex')}]`)
     }
