@@ -15,6 +15,8 @@ import TxContext from './txContext'
 import Message from './message'
 import EEI from './eei'
 import { default as Interpreter, InterpreterOpts, RunState } from './interpreter'
+import { Logger, ScopedLogger } from '../ovm/utils/logger'
+import { env } from 'process'
 
 const Block = require('ethereumjs-block')
 
@@ -269,7 +271,7 @@ export default class EVM {
    * it with the [[EEI]].
    */
   async runInterpreter(message: Message, opts: InterpreterOpts = {}): Promise<ExecResult> {
-    const env = {
+    const intEnv = {
       blockchain: this._vm.blockchain, // Only used in BLOCKHASH
       address: message.to || zeros(32),
       caller: message.caller || zeros(32),
@@ -284,7 +286,7 @@ export default class EVM {
       contract: await this._state.getAccount(message.to || zeros(32)),
       codeAddress: message.codeAddress,
     }
-    const eei = new EEI(env, this._state, this, this._vm._common, message.gasLimit.clone())
+    const eei = new EEI(intEnv, this._state, this, this._vm._common, message.gasLimit.clone())
     if (message.selfdestruct) {
       eei._result.selfdestruct = message.selfdestruct
     }
